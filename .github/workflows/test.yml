@@ -75,6 +75,41 @@ jobs:
           FILES: 'test-file-new.json'
           EXPECTED_VERSION: '0.1.0'
 
+  test-plain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          path: "./"
+
+      - run: npm ci --prod
+
+      - run: touch ./fake-file.log
+      - run: "git config --global user.email 'changelog@github.com'"
+      - run: "git config --global user.name 'Awesome Github action'"
+      - run: "git add . && git commit -m 'feat: Added fake file so version will be bumped'"
+
+      - name: Generate changelog
+        id: changelog
+        uses: ./
+        env:
+          ENV: 'dont-use-git'
+          EXPECTED_TAG: 'v0.3.0'
+        with:
+          github-token: ${{ secrets.github_token }}
+          version-file: 'test-version.txt'
+
+      - name: Show file
+        run: |
+          echo "$(<test-version)"
+
+      - name: Test output
+        run: node ./test-output.js
+        env:
+          FILES: 'test-version.txt'
+          EXPECTED_VERSION: '0.3.0'
+
   test-json-empty:
     runs-on: ubuntu-latest
     steps:

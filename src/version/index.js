@@ -19,7 +19,7 @@ module.exports = (fileExtension) => {
     case 'git':
       return new Git();
 
-    case '':
+    case 'txt':
       return new Plain();
 
     default:

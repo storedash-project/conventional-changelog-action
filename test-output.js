@@ -1,65 +1,83 @@
-const fs = require('fs')
-const assert = require('assert')
-const objectPath = require('object-path')
-const yaml = require('yaml')
-const toml = require('@iarna/toml')
+const fs = require('fs');
+const assert = require('assert');
+const objectPath = require('object-path');
+const yaml = require('yaml');
+const toml = require('@iarna/toml');
 
-const actionConfig = yaml.parse(fs.readFileSync('./action.yml', 'utf8'))
+const actionConfig = yaml.parse(fs.readFileSync('./action.yml', 'utf8'));
 
 const {
   FILES = actionConfig.inputs['version-file'].default,
   EXPECTED_VERSION_PATH = actionConfig.inputs['version-path'].default,
   EXPECTED_VERSION = actionConfig.inputs['fallback-version'].default,
-} = process.env
+} = process.env;
 
-assert.ok(FILES, 'Files not defined!')
+assert.ok(FILES, 'Files not defined!');
 
 /**
  * Test if all the files are updated
  */
 FILES.split(',').map((file, index) => {
-  console.log(`Going to test file "${file}"`)
+  console.log(`Going to test file "${file}"`);
 
-  const fileContent = fs.readFileSync(file.trim(), 'utf8')
-  const fileExtension = file.split('.').pop()
+  const fileContent = fs.readFileSync(file.trim(), 'utf8');
+  const fileExtension = file.split('.').pop();
 
-  assert.ok(fileExtension, 'No file extension found!')
+  assert.ok(fileExtension, 'No file extension found!');
 
-  let parsedContent = null
+  console.log('Extension: ', fileExtension);
+
+  let parsedContent = null;
 
   switch (fileExtension.toLowerCase()) {
     case 'json':
-      parsedContent = JSON.parse(fileContent)
-      break
+      parsedContent = JSON.parse(fileContent);
+      break;
 
     case 'yaml':
     case 'yml':
-      parsedContent = yaml.parse(fileContent)
-      break
+      parsedContent = yaml.parse(fileContent);
+      break;
 
     case 'toml':
-      parsedContent = toml.parse(fileContent)
-      break
+      parsedContent = toml.parse(fileContent);
+      break;
+
+    case 'txt':
+      parsedContent = fileContent;
+      break;
 
     default:
-      assert.fail('File extension not supported!')
+      assert.fail('File extension not supported!');
   }
 
-  console.log(`"${file}" has a valid extension "${fileExtension.toLowerCase()}"`)
+  console.log(
+    `"${file}" has a valid extension "${fileExtension.toLowerCase()}"`
+  );
 
-  assert.ok(parsedContent, 'Content could not be parsed!')
+  assert.ok(parsedContent, 'Content could not be parsed!');
 
-  console.log(`"${file}" has valid content`, parsedContent)
+  console.log(`"${file}" has valid content`, parsedContent);
+  let newVersionInFile = parsedContent;
+  if (fileExtension.toLowerCase() !== 'txt') {
+    newVersionInFile = objectPath.get(
+      parsedContent,
+      EXPECTED_VERSION_PATH,
+      null
+    );
+  }
 
-  const newVersionInFile = objectPath.get(parsedContent, EXPECTED_VERSION_PATH, null)
+  const expectedVersions = EXPECTED_VERSION.split(',');
+  const expectedVersion =
+    expectedVersions.length > 0 ? expectedVersions[index] : expectedVersions;
 
-  const expectedVersions = EXPECTED_VERSION.split(',')
-  const expectedVersion = expectedVersions.length > 0
-    ? expectedVersions[index]
-    : expectedVersions
+  console.log(
+    `"${file}" check if "${newVersionInFile}" matches what is expected "${expectedVersion.trim()}"`
+  );
 
-  console.log(`"${file}" check if "${newVersionInFile}" matches what is expected "${expectedVersion.trim()}"`)
-
-  assert.strictEqual(newVersionInFile, expectedVersion.trim(), 'Version does not match what is expected')
-})
-
+  assert.strictEqual(
+    newVersionInFile,
+    expectedVersion.trim(),
+    'Version does not match what is expected'
+  );
+});
