@@ -10,7 +10,7 @@ module.exports = class Plain extends BaseVersioning {
    * @return {*}
    */
   bump = async (releaseType) => {
-    // Read the file
+    // Read the text file
     const fileContent = this.read();
 
     // Get the old version
